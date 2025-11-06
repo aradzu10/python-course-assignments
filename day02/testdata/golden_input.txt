@@ -1,0 +1,3 @@
+# task,input_value,input_unit,output_unit
+temperature,32,F,C
+length,2.54,cm,in
