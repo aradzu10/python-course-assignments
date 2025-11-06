@@ -61,6 +61,11 @@ Usage
 
   The GUI lets you pick task (temperature/length), enter a value, choose input/output units and see the result.
 
+  Screenshot:
+
+  ![GUI screenshot](gui_screenshot.png)
+
+
 ### Tests
 
 Run tests with pytest (recommended):
