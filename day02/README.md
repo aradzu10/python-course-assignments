@@ -48,7 +48,7 @@ Usage
 
   Example input file (each line is one conversion request):
 
-  temperature,32,F,C
+  temperature,32,F,C \
   length,2.54,cm,in
 
   Run the CLI with the file as an argument (from repo root):
@@ -61,7 +61,7 @@ Usage
   input filename. The output file is CSV with a header and one result per input line:
 
   # task,input_value,input_unit,output_value,output_unit
-  temperature,32.0,F,0.0,C
+  temperature,32.0,F,0.0,C \
   length,2.54,cm,1.0,in
 
   Notes
