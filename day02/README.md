@@ -41,17 +41,33 @@ Usage
 
   task,input_value,input_unit,output_unit
 
-  Examples:
+  - Fields:
+    - task: "temperature" or "length"
+    - input_value: numeric value (e.g. 32 or 2.54)
+    - input_unit / output_unit: for temperature use C, F, or K; for length use cm or in
+
+  Example input file (each line is one conversion request):
 
   temperature,32,F,C
   length,2.54,cm,in
 
-  Run:
+  Run the CLI with the file as an argument (from repo root):
 
   python -m converter_cli conversions.txt
 
-  The program writes a new file next to the input named with `_converted` appended
-  (e.g. `conversions_converted.txt`) with CSV output lines: task,input_value,input_unit,output_value,output_unit
+  Output format
+  -------------
+  The program writes a new file next to the input with `_converted` appended to the
+  input filename. The output file is CSV with a header and one result per input line:
+
+  # task,input_value,input_unit,output_value,output_unit
+  temperature,32.0,F,0.0,C
+  length,2.54,cm,1.0,in
+
+  Notes
+  -----
+  - Lines that are empty or start with `#` are skipped.
+  - Malformed lines produce an `ERROR` entry in the output so you can spot issues.
 
 - GUI
 
