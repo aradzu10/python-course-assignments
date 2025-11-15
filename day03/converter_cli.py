@@ -16,20 +16,38 @@ import sys
 import csv
 from typing import List
 
-from converter import convert
+from converter import convert, TEMP_UNITS, LEN_UNITS
 
 
 def interactive_mode() -> None:
     print("Interactive converter")
     task = input("Task (temperature/length): ").strip()
+
+    # choose allowed units based on task
+    t_low = task.strip().lower()
+    if t_low.startswith("t"):
+        allowed = TEMP_UNITS
+    else:
+        allowed = LEN_UNITS
+
     raw = input("Input value: ").strip()
-    in_unit = input("Input unit (e.g. C, F, K, cm, in): ").strip()
-    out_unit = input("Output unit: ").strip()
     try:
         val = float(raw)
     except Exception:
         print("Invalid numeric value")
         return
+
+    def ask_unit(prompt: str, choices: list[str]) -> str:
+        choices_str = ", ".join(choices)
+        while True:
+            u = input(f"{prompt} ({choices_str}): ").strip()
+            if any(u.lower() == c.lower() for c in choices):
+                return u
+            print(f"Invalid unit. Choose one of: {choices_str}")
+
+    in_unit = ask_unit("Input unit", allowed)
+    out_unit = ask_unit("Output unit", allowed)
+
     try:
         result = convert(task, val, in_unit, out_unit)
     except Exception as e:
@@ -84,17 +102,48 @@ def main(argv: List[str] | None = None) -> int:
     parser.add_argument(
         "file", nargs="?", help="Input file with conversion instructions"
     )
+    # allow single-shot conversions via CLI args
+    parser.add_argument(
+        "-t",
+        "--task",
+        choices=["temperature", "length"],
+        help="Task: temperature or length",
+    )
+    parser.add_argument("-v", "--value", type=float, help="Input numeric value")
+    parser.add_argument(
+        "-f", "--from-unit", dest="from_unit", help="Input unit (C,F,K,cm,in)"
+    )
+    parser.add_argument(
+        "-o", "--to-unit", dest="to_unit", help="Output unit (C,F,K,cm,in)"
+    )
     args = parser.parse_args(argv)
-    if not args.file:
-        interactive_mode()
-        return 0
-    try:
+
+    # If user supplied a file and also supplied task/value flags, that's ambiguous
+    if args.file and args.task:
+        print("Error: provide either a file OR task/value arguments, not both.")
+        return 2
+
+    # If file provided, run file processing
+    if args.file:
         out = process_file(args.file)
         print(f"Wrote: {out}")
         return 0
-    except Exception as e:
-        print(f"Error processing file: {e}")
-        return 2
+
+    # If task provided, require value and units
+    if args.task:
+        if args.value is None or not args.from_unit or not args.to_unit:
+            print(
+                "Error: when using --task you must also provide --value, --from-unit and --to-unit"
+            )
+            return 2
+        result = convert(args.task, args.value, args.from_unit, args.to_unit)
+        # print concise result
+        print(f"{args.value} {args.from_unit} -> {result} {args.to_unit}")
+        return 0
+
+    # No file and no task flags -> interactive mode
+    interactive_mode()
+    return 0
 
 
 if __name__ == "__main__":
