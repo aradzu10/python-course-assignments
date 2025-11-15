@@ -14,6 +14,9 @@ from __future__ import annotations
 from typing import Tuple
 
 
+TEMP_UNITS = ["C", "F", "K"]
+LEN_UNITS = ["cm", "in"]
+
 def _normalize_unit(unit: str) -> str:
     u = unit.strip().lower()
     if u in ("c", "celsius", "centigrade"):

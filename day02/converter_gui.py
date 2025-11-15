@@ -14,11 +14,7 @@ import sys
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from converter import convert
-
-
-TEMP_UNITS = ["C", "F", "K"]
-LEN_UNITS = ["cm", "in"]
+from converter import convert, TEMP_UNITS, LEN_UNITS
 
 
 class ConverterGUI(tk.Tk):
@@ -67,7 +63,7 @@ class ConverterGUI(tk.Tk):
 
         # Result
         self.result_var = tk.StringVar(value="")
-        ttk.Label(frm, textvariable=self.result_var, font=(None, 11, "bold")).grid(
+        ttk.Label(frm, textvariable=self.result_var, font=[None, 11, "bold"]).grid(
             row=5, column=0, columnspan=2, pady=(8, 0)
         )
 
