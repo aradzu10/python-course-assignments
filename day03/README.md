@@ -37,6 +37,8 @@ Usage
 
   python -m converter_cli
 
+- CLI mode: provide '--task, --value, --from-value, --to-value'. As state in the '--help' message.
+
 - File mode: provide a file where each non-empty line is a CSV record:
 
   task,input_value,input_unit,output_unit
@@ -68,19 +70,6 @@ Usage
   -----
   - Lines that are empty or start with `#` are skipped.
   - Malformed lines produce an `ERROR` entry in the output so you can spot issues.
-
-- GUI
-
-  Run the Tk GUI version (requires a display):
-
-  python -m day02.gui
-
-  The GUI lets you pick task (temperature/length), enter a value, choose input/output units and see the result.
-
-  Screenshot:
-
-  ![GUI screenshot](gui_screenshot.png)
-
 
 ### Tests
 
