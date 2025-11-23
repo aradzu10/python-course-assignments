@@ -13,63 +13,28 @@ from __future__ import annotations
 
 from typing import Tuple
 
+import pint
+
+# Initialize pint unit registry
+ureg = pint.UnitRegistry()
 
 TEMP_UNITS = ["C", "F", "K"]
-LEN_UNITS = ["cm", "in"]
+LEN_UNITS = ["cm", "inch"]
 
 def _normalize_unit(unit: str) -> str:
+    """Normalize unit names to pint-compatible format."""
     u = unit.strip().lower()
     if u in ("c", "celsius", "centigrade"):
-        return "c"
+        return "degC"
     if u in ("f", "fahrenheit"):
-        return "f"
+        return "degF"
     if u in ("k", "kelvin"):
-        return "k"
+        return "kelvin"
     if u in ("cm", "centimeter", "centimeters"):
         return "cm"
     if u in ("in", "inch", "inches"):
-        return "in"
+        return "inch"
     raise ValueError(f"Unknown unit: {unit}")
-
-
-def _to_celsius(value: float, unit: str) -> float:
-    u = _normalize_unit(unit)
-    if u == "c":
-        return value
-    if u == "f":
-        return (value - 32.0) * 5.0 / 9.0
-    if u == "k":
-        return value - 273.15
-    raise ValueError(f"Cannot convert {unit} to celsius")
-
-
-def _from_celsius(c: float, unit: str) -> float:
-    u = _normalize_unit(unit)
-    if u == "c":
-        return c
-    if u == "f":
-        return c * 9.0 / 5.0 + 32.0
-    if u == "k":
-        return c + 273.15
-    raise ValueError(f"Cannot convert celsius to {unit}")
-
-
-def _to_cm(value: float, unit: str) -> float:
-    u = _normalize_unit(unit)
-    if u == "cm":
-        return value
-    if u == "in":
-        return value * 2.54
-    raise ValueError(f"Cannot convert {unit} to cm")
-
-
-def _from_cm(cm: float, unit: str) -> float:
-    u = _normalize_unit(unit)
-    if u == "cm":
-        return cm
-    if u == "in":
-        return cm / 2.54
-    raise ValueError(f"Cannot convert cm to {unit}")
 
 
 def convert(task: str, value: float, from_unit: str, to_unit: str) -> float:
@@ -79,16 +44,24 @@ def convert(task: str, value: float, from_unit: str, to_unit: str) -> float:
     Raises ValueError on unknown units or tasks.
     """
     t = task.strip().lower()
-    if t in ("temperature", "temp", "t"):
-        # use Celsius as intermediate
-        c = _to_celsius(value, from_unit)
-        return _from_celsius(c, to_unit)
-    if t in ("length", "len", "l"):
-        cm = _to_cm(value, from_unit)
-        return _from_cm(cm, to_unit)
-    raise ValueError(f"Unknown task: {task}")
 
+    try:
+        # Normalize units to pint format
+        from_pint = _normalize_unit(from_unit)
+        to_pint = _normalize_unit(to_unit)
 
+        # Create quantity with pint
+        quantity = ureg.Quantity(value, from_pint)
+
+        # Convert to target unit
+        result = quantity.to(to_pint)
+
+        # Round to 12 decimal places to avoid floating point precision issues
+        return round(result.magnitude, 5)
+    except (pint.errors.DimensionalityError, pint.errors.UndefinedUnitError) as e:
+        raise ValueError(f"Cannot convert {from_unit} to {to_unit}: {e}")
+    except Exception as e:
+        raise ValueError(f"Conversion error: {e}")
 def parse_line(line: str) -> Tuple[str, float, str, str]:
     """Parse a CSV-ish line: task,input_value,input_unit,output_unit
 
