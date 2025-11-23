@@ -2,6 +2,49 @@
 
 Track research activity trends for genes or topics by analyzing PubMed publication counts over the last 20 years.
 
+## About this project
+
+### Idea
+
+I didn't had any specific project which this project could influence and help. \
+But, I really love data science and numbers. 
+So I thought it might be cool to choose any gene (or topic) and play & compare it to others.
+
+### AI Prompts
+
+Below are all the prompts I used in order to build my project. \
+I used VSCode with Claude Sonnet 4.5, at Agent mode.
+
+First prompt:
+```
+Create an entire application.
+The Concept: "The Gene Trend Tracker"
+The Goal: A dashboard that answers the question: "Is this gene a 'hot topic' right now, or is it old news?"
+
+Instead of looking at DNA sequences, this app looks at research activity. It plots a timeline showing how many scientific papers were published about a specific gene over the last 20 years.
+```
+
+Second prompt:
+```
+1. Use Bio.Entrez instead of raw api calls.
+2. Make the gene validation without option for open an empty drawer.
+3. When fetching dates, make the user see progress.
+4. Make it possible to view a couple of topics on top of each other.
+```
+
+Last prompt:
+```
+Now look at the all project.
+
+1. Make sure there is enough tests. Create more if needed. Make them clearer, and better! (if needed)
+2. Take all the .md files, and keep only the README. Make it simple to read, and not long.
+3. Remove the setup.sh file.
+4. Make sure the logic are separate to classes correctly.
+5. Make sure the ui is separate correctly.
+6. Make sure the logic and the ui are independent as much as possible.
+7. Make sure everything possible are in configuration file - email and api key, ui texts and details. What should be in different configuration files, make it at different files.
+```
+
 ## Screenshots
 
 ### Main Screen
