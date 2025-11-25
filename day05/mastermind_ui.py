@@ -1,4 +1,4 @@
-from game_logic import MasterMindGame
+from mastermind_logic import MasterMindGame
 
 EXACT_MATCH_SYMBOL = "+"
 WRONG_POSITION_SYMBOL = "~"

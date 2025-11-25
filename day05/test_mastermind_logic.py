@@ -1,4 +1,4 @@
-from game_logic import MasterMindGame
+from mastermind_logic import MasterMindGame
 
 
 def test_evaluate_guess():
