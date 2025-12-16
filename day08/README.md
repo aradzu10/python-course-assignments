@@ -92,7 +92,7 @@ This will generate all the visualization files in the `plots/` directory.
 
 Install `pip install -r requirement.txt`
 
-```python
+```
 pandas
 seaborn
 matplotlib
