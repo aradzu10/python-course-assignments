@@ -62,14 +62,15 @@ def load_and_parse_data():
     ).dt.total_seconds() / 3600
     data["submission_day"] = data["date"].dt.day_name()
     data["submission_hour"] = data["date"].dt.hour
-    data["submission_weekday"] = data["date"].dt.weekday  # 0=Monday, 6=Sunday
+    data["submission_weekday"] = data["date"].dt.weekday + 1  # 1=Monday, 7=Sunday
+    data["submission_weekday"] = data["submission_weekday"].replace({7: 0})
 
     # Add time period categories
     def categorize_time(row):
         weekday = row["submission_weekday"]
         hour = row["submission_hour"]
 
-        if weekday >= 5:  # Saturday=5, Sunday=6
+        if weekday >= 6:  # Friday=6, Saturday=7
             return "Weekend"
         elif 9 <= hour <= 17:
             return "Weekday Working Hours"
@@ -96,7 +97,7 @@ def plot_submission_heatmap(data):
     )
 
     # Create proper day labels
-    day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    day_labels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
 
     plt.figure(figsize=(14, 8))
     sns.heatmap(
@@ -344,10 +345,22 @@ def plot_weekend_warrior_stacked_bar(data):
 
 
 def analyze_time_allocation_patterns(data):
-    """Analyze relationship between assignment duration and submission patterns."""
+    """Analyze whether longer assignment time changes submission timing relative to deadline."""
     print("Analyzing time allocation patterns...")
 
-    # Calculate submission patterns by assignment duration
+    # Remove proposals from data
+    data = data[data["assignment_name"] != "Proposal"]
+
+    # Add relative timing calculations
+    data["assignment_duration_hours"] = data["duration_days"] * 24
+    data["time_from_start"] = (
+        data["date"] - data["date_begin"]
+    ).dt.total_seconds() / 3600
+    data["relative_submission_time"] = (
+        data["time_from_start"] / data["assignment_duration_hours"]
+    ) * 100
+
+    # Calculate patterns by assignment
     assignment_patterns = (
         data.groupby("assignment_name")
         .agg(
@@ -355,33 +368,31 @@ def analyze_time_allocation_patterns(data):
                 "hours_before_deadline": ["mean", "median", "std"],
                 "duration_days": "first",
                 "user": "count",
+                "relative_submission_time": ["mean", "median", "std"],
             }
         )
         .round(2)
     )
 
     assignment_patterns.columns = [
-        "mean_earliness",
-        "median_earliness",
-        "std_earliness",
+        "mean_earliness_hours",
+        "median_earliness_hours",
+        "std_earliness_hours",
         "duration_days",
         "submission_count",
+        "mean_relative_timing",
+        "median_relative_timing",
+        "std_relative_timing",
     ]
     assignment_patterns = assignment_patterns.reset_index()
 
-    # Calculate relative earliness (proportion of assignment duration)
-    assignment_patterns["relative_earliness"] = (
-        assignment_patterns["mean_earliness"]
-        / (assignment_patterns["duration_days"] * 24)
-    ) * 100
-
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
 
-    # Plot 1: Duration vs Mean Earliness
+    # Plot 1: Duration vs Relative Submission Timing
     scatter1 = ax1.scatter(
         assignment_patterns["duration_days"],
-        assignment_patterns["mean_earliness"],
-        s=assignment_patterns["submission_count"] * 3,
+        assignment_patterns["mean_relative_timing"],
+        s=assignment_patterns["submission_count"] * 5,
         alpha=0.7,
         c="blue",
     )
@@ -392,7 +403,7 @@ def analyze_time_allocation_patterns(data):
         texts1.append(
             ax1.annotate(
                 row["assignment_name"],
-                (row["duration_days"], row["mean_earliness"]),
+                (row["duration_days"], row["mean_relative_timing"]),
                 fontsize=8,
                 alpha=0.8,
             )
@@ -402,16 +413,22 @@ def analyze_time_allocation_patterns(data):
         texts1, ax=ax1, arrowprops=dict(arrowstyle="-", color="gray", alpha=0.5)
     )
 
+    ax1.axhline(
+        y=90, color="red", linestyle="--", alpha=0.7, label="90% through assignment"
+    )
     ax1.set_xlabel("Assignment Duration (Days)")
-    ax1.set_ylabel("Mean Earliness (Hours Before Deadline)")
+    ax1.set_ylabel("Mean Relative Timing (% through assignment)")
     ax1.set_title(
-        "Duration vs Submission Earliness\n(Do longer assignments get earlier submissions?)"
+        "Do students submit at consistent relative times?\n(100% = deadline, 0% = assignment start)"
     )
     ax1.grid(True, alpha=0.3)
+    ax1.legend()
+    ax1.set_ylim(0, 110)
 
     # Add correlation coefficient
     corr1 = np.corrcoef(
-        assignment_patterns["duration_days"], assignment_patterns["mean_earliness"]
+        assignment_patterns["duration_days"],
+        assignment_patterns["mean_relative_timing"],
     )[0, 1]
     ax1.text(
         0.05,
@@ -421,13 +438,13 @@ def analyze_time_allocation_patterns(data):
         bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
     )
 
-    # Plot 2: Duration vs Consistency (std)
+    # Plot 2: Duration vs Absolute Earliness
     scatter2 = ax2.scatter(
         assignment_patterns["duration_days"],
-        assignment_patterns["std_earliness"],
-        s=assignment_patterns["submission_count"] * 3,
+        assignment_patterns["mean_earliness_hours"],
+        s=assignment_patterns["submission_count"] * 5,
         alpha=0.7,
-        c="red",
+        c="green",
     )
 
     # Add annotations for each assignment
@@ -436,7 +453,7 @@ def analyze_time_allocation_patterns(data):
         texts2.append(
             ax2.annotate(
                 row["assignment_name"],
-                (row["duration_days"], row["std_earliness"]),
+                (row["duration_days"], row["mean_earliness_hours"]),
                 fontsize=8,
                 alpha=0.8,
             )
@@ -447,14 +464,15 @@ def analyze_time_allocation_patterns(data):
     )
 
     ax2.set_xlabel("Assignment Duration (Days)")
-    ax2.set_ylabel("Submission Consistency (Std Dev Hours)")
+    ax2.set_ylabel("Mean Submission Earliness (Hours before deadline)")
     ax2.set_title(
-        "Duration vs Submission Spread\n(Do longer assignments create more varied timing?)"
+        "Do longer assignments get earlier submissions?\n(Absolute time before deadline)"
     )
     ax2.grid(True, alpha=0.3)
 
     corr2 = np.corrcoef(
-        assignment_patterns["duration_days"], assignment_patterns["std_earliness"]
+        assignment_patterns["duration_days"],
+        assignment_patterns["mean_earliness_hours"],
     )[0, 1]
     ax2.text(
         0.05,
@@ -464,47 +482,32 @@ def analyze_time_allocation_patterns(data):
         bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
     )
 
-    # Plot 3: Duration vs Consistency (std)
-    scatter3 = ax3.scatter(
-        assignment_patterns["duration_days"],
-        assignment_patterns["std_earliness"],
-        s=assignment_patterns["submission_count"] * 3,
-        alpha=0.7,
-        c="red",
-    )
-    ax3.set_xlabel("Assignment Duration (Days)")
-    ax3.set_ylabel("Submission Consistency (Std Dev Hours)")
-    ax3.set_title(
-        "Assignment Duration vs Submission Consistency\n(Do longer assignments lead to more consistent submissions?)"
-    )
-    ax3.grid(True, alpha=0.3)
+    # Plot 3: Box plot of relative timing by assignment (sorted by duration)
+    assignments_sorted = assignment_patterns.sort_values("duration_days")
 
-    # Add annotations for each assignment
-    texts3 = []
-    for i, row in assignment_patterns.iterrows():
-        texts3.append(
-            ax3.annotate(
-                row["assignment_name"],
-                (row["duration_days"], row["std_earliness"]),
-                fontsize=8,
-                alpha=0.8,
-            )
-        )
+    # Prepare data for boxplot
+    boxplot_data = []
+    labels = []
+    for assignment in assignments_sorted["assignment_name"]:
+        assignment_data = data[data["assignment_name"] == assignment][
+            "relative_submission_time"
+        ]
+        boxplot_data.append(assignment_data)
+        duration = assignment_patterns[
+            assignment_patterns["assignment_name"] == assignment
+        ]["duration_days"].iloc[0]
+        labels.append(f"{assignment}\n({duration:.1f}d)")
 
-    adjust_text(
-        texts3, ax=ax3, arrowprops=dict(arrowstyle="-", color="gray", alpha=0.5)
+    ax3.boxplot(boxplot_data, labels=labels)
+    ax3.axhline(
+        y=90, color="red", linestyle="--", alpha=0.7, label="90% through assignment"
     )
-
-    corr3 = np.corrcoef(
-        assignment_patterns["duration_days"], assignment_patterns["std_earliness"]
-    )[0, 1]
-    ax3.text(
-        0.05,
-        0.95,
-        f"Correlation: {corr3:.3f}",
-        transform=ax3.transAxes,
-        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8),
-    )
+    ax3.set_ylabel("Relative Submission Time (% through assignment)")
+    ax3.set_title("Distribution of submission timing\n(sorted by assignment duration)")
+    ax3.tick_params(axis="x", rotation=45)
+    ax3.grid(True, alpha=0.3, axis="y")
+    ax3.legend()
+    ax3.set_ylim(0, 110)
 
     plt.tight_layout()
     plt.savefig(
@@ -529,7 +532,8 @@ def generate_summary_statistics(data, assignments, assignment_patterns):
         "late_submissions_pct": (data["hours_before_deadline"] < 0).mean() * 100,
         "weekend_submissions_pct": (data["time_category"] == "Weekend").mean() * 100,
         "duration_earliness_correlation": np.corrcoef(
-            assignment_patterns["duration_days"], assignment_patterns["mean_earliness"]
+            assignment_patterns["duration_days"],
+            assignment_patterns["mean_earliness_hours"],
         )[0, 1],
     }
 
